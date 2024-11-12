@@ -1,15 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Menubar } from 'primereact/menubar';
 import { useRouter } from 'next/router';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const { authToken, logout } = useAuth();
     const router = useRouter();
-
-    useEffect(() => {
-        const token = localStorage.getItem('authToken');
-        setIsAuthenticated(!!token);
-    }, []);
 
     const guestItems = [
         { label: 'Home', icon: 'pi pi-fw pi-home', command: () => router.push('/') },
@@ -25,17 +21,13 @@ export default function Navbar() {
         {
             label: 'Cerrar Sesión',
             icon: 'pi pi-fw pi-sign-out',
-            command: () => {
-                localStorage.removeItem('authToken');
-                setIsAuthenticated(false);
-                router.push('/');
-            }
+            command: logout
         }
     ];
 
     return (
         <div>
-            <Menubar model={isAuthenticated ? authItems : guestItems} />
+            <Menubar model={authToken ? authItems : guestItems} />
         </div>
     );
 }
