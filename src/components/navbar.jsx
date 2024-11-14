@@ -15,8 +15,10 @@ export default function Navbar() {
 
     const authItems = [
         { label: 'Home', icon: 'pi pi-fw pi-home', command: () => router.push('/') },
-        { label: 'Publicaciones', icon: 'pi pi-fw pi-book', command: () => router.push('/posts') },
-        { label: 'Crear Publicación', icon: 'pi pi-fw pi-plus', command: () => router.push('/posts/new') },
+        { label: 'Publicaciones', icon: 'pi pi-fw pi-book', command: () => router.push('/GetPosts') },
+        { label: 'Crear Publicación', icon: 'pi pi-fw pi-plus', command: () => router.push('/AddPost') },
+        { label: 'Actualizar Publicación', icon: 'pi pi-spin pi-spinner', command: () => router.push('/UpdatePost') },
+        { label: 'Eliminar Publicación', icon: 'pi pi-fw pi-trash', command: () => router.push('/DeletePost') },
         { label: 'Perfil', icon: 'pi pi-fw pi-user', command: () => router.push('/profile') },
         {
             label: 'Cerrar Sesión',
