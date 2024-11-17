@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import React, { useRef, useState, useEffect } from 'react';
+import { useQuery, useMutation, gql, useApolloClient } from '@apollo/client';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Dialog } from 'primereact/dialog';
@@ -65,6 +65,7 @@ const DELETE_POST = gql`
 `;
 
 const PostList = () => {
+    const client = useApolloClient(); // Apollo Client para limpiar caché
     const { loading: loadingAll, error: errorAll, data: allPosts, refetch: refetchAll } = useQuery(GET_POSTS);
     const { loading: loadingMine, error: errorMine, data: myPosts, refetch: refetchMine } = useQuery(GET_MY_POSTS);
     const [addPost] = useMutation(ADD_POST);
@@ -77,6 +78,22 @@ const PostList = () => {
     const [postTitle, setPostTitle] = useState('');
     const [postContent, setPostContent] = useState('');
     const toast = useRef(null);
+
+    // Ejecutar automáticamente al iniciar sesión (o montar el componente)
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                await client.clearStore(); // Limpia la caché de Apollo Client
+                refetchAll(); // Refresca las publicaciones generales
+                refetchMine(); // Refresca las publicaciones del usuario actual
+                toast.current.show({ severity: 'success', summary: 'Bienvenido', detail: 'Datos cargados correctamente' });
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los datos' });
+            }
+        };
+
+        fetchUserData();
+    }, [client, refetchAll, refetchMine]); // Solo se ejecuta una vez al montar el componente
 
     const handleAddPost = async () => {
         if (!postTitle || !postContent) {
@@ -152,7 +169,7 @@ const PostList = () => {
         <div className="p-grid p-justify-center p-mt-5">
             <Toast ref={toast} />
             <div className="p-col-12 p-md-10">
-                <Panel header="Crear Nueva Publicación" className="p-shadow-3">
+                <Panel header="Crear Nueva Publicación" className="p-shadow-3 p-mt-3">
                     <div className="p-fluid">
                         <div className="p-field">
                             <InputText
