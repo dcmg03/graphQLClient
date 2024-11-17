@@ -3,6 +3,7 @@ import { useMutation, gql } from '@apollo/client';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
+import { InputTextarea } from 'primereact/inputtextarea';
 
 const ADD_POST = gql`
     mutation AddPost($title: String!, $content: String!) {
@@ -17,21 +18,38 @@ const ADD_POST = gql`
     }
 `;
 
-const AddPost = () => {
+const AddPost = ({ refetchPosts }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [addPost] = useMutation(ADD_POST);
+    const [addPost, { loading }] = useMutation(ADD_POST);
     const toast = useRef(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!title.trim() || !content.trim()) {
+            toast.current.show({
+                severity: 'warn',
+                summary: 'Advertencia',
+                detail: 'Todos los campos son obligatorios',
+            });
+            return;
+        }
         try {
             await addPost({ variables: { title, content } });
             setTitle('');
             setContent('');
-            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Publicación creada con éxito' });
+            toast.current.show({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: 'Publicación creada con éxito',
+            });
+            if (refetchPosts) refetchPosts(); // Refresca la lista de publicaciones si es necesario
         } catch (err) {
-            toast.current.show({ severity: 'error', summary: 'Error', detail: 'Error al crear publicación' });
+            toast.current.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo crear la publicación',
+            });
             console.error('Error al crear publicación:', err.message);
         }
     };
@@ -53,8 +71,9 @@ const AddPost = () => {
                 </div>
                 <div className="p-field">
                     <label htmlFor="content">Contenido</label>
-                    <InputText
+                    <InputTextarea
                         id="content"
+                        rows={5}
                         placeholder="Contenido"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
@@ -63,9 +82,10 @@ const AddPost = () => {
                 </div>
                 <Button
                     type="submit"
-                    label="Crear Publicación"
+                    label={loading ? 'Creando...' : 'Crear Publicación'}
                     icon="pi pi-check"
                     className="p-button-rounded p-button-success"
+                    disabled={loading}
                 />
             </form>
         </div>

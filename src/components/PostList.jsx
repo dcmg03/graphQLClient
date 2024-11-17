@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
-import { Dialog } from 'primereact/dialog';
-import { Toast } from 'primereact/toast';
+import { useAuth } from '../context/AuthContext';
 
 const GET_POSTS = gql`
     query GetPosts {
@@ -18,12 +15,15 @@ const GET_POSTS = gql`
     }
 `;
 
-const UPDATE_POST = gql`
-    mutation UpdatePost($id: ID!, $title: String, $content: String) {
-        updatePost(id: $id, title: $title, content: $content) {
+const ADD_POST = gql`
+    mutation AddPost($title: String!, $content: String!) {
+        addPost(title: $title, content: $content) {
             id
             title
             content
+            author {
+                username
+            }
         }
     }
 `;
@@ -35,125 +35,78 @@ const DELETE_POST = gql`
 `;
 
 const PostList = () => {
-    const { data, loading, error, refetch } = useQuery(GET_POSTS);
-    const [updatePost] = useMutation(UPDATE_POST);
-    const [deletePost] = useMutation(DELETE_POST);
-    const [selectedPost, setSelectedPost] = useState(null);
-    const [isDialogVisible, setDialogVisible] = useState(false);
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const toast = React.useRef(null);
+    const { isAuthenticated } = useAuth();
+    const { loading, error, data, refetch } = useQuery(GET_POSTS);
+    const [addPost] = useMutation(ADD_POST, {
+        onCompleted: () => refetch(),
+    });
+    const [deletePost] = useMutation(DELETE_POST, {
+        onCompleted: () => refetch(),
+    });
 
-    const handleUpdate = async () => {
-        try {
-            await updatePost({
-                variables: { id: selectedPost.id, title, content },
-            });
-            toast.current.show({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Publicación actualizada con éxito',
-            });
+    const [newPost, setNewPost] = useState({ title: '', content: '' });
+
+    useEffect(() => {
+        if (isAuthenticated) {
             refetch();
-            setDialogVisible(false);
-        } catch (err) {
-            console.error('Error al actualizar publicación:', err.message);
-            toast.current.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo actualizar la publicación',
-            });
         }
-    };
+    }, [isAuthenticated, refetch]);
 
-    const handleDelete = async (id) => {
-        try {
-            await deletePost({ variables: { id } });
-            toast.current.show({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Publicación eliminada con éxito',
-            });
-            refetch();
-        } catch (err) {
-            console.error('Error al eliminar publicación:', err.message);
-            toast.current.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo eliminar la publicación',
-            });
-        }
-    };
-
-    const openEditDialog = (post) => {
-        setSelectedPost(post);
-        setTitle(post.title);
-        setContent(post.content);
-        setDialogVisible(true);
-    };
+    if (!isAuthenticated) {
+        return <p>Debes iniciar sesión para ver las publicaciones.</p>;
+    }
 
     if (loading) return <p>Cargando publicaciones...</p>;
-    if (error) return <p>Error al cargar publicaciones</p>;
+    if (error) return <p>Error al cargar publicaciones: {error.message}</p>;
+
+    const handleAddPost = async (e) => {
+        e.preventDefault();
+        try {
+            await addPost({ variables: newPost });
+            setNewPost({ title: '', content: '' });
+            alert('Publicación creada con éxito');
+        } catch (err) {
+            console.error('Error al crear publicación:', err.message);
+        }
+    };
+
+    const handleDeletePost = async (id) => {
+        try {
+            await deletePost({ variables: { id } });
+            alert('Publicación eliminada con éxito');
+        } catch (err) {
+            console.error('Error al eliminar publicación:', err.message);
+        }
+    };
 
     return (
         <div>
-            <Toast ref={toast} />
-            <h2>Lista de Publicaciones</h2>
-            <ul>
+            <h2>Publicaciones</h2>
+            <form onSubmit={handleAddPost}>
+                <input
+                    type="text"
+                    placeholder="Título"
+                    value={newPost.title}
+                    onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                />
+                <textarea
+                    placeholder="Contenido"
+                    value={newPost.content}
+                    onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                />
+                <button type="submit">Crear Publicación</button>
+            </form>
+            <div>
                 {data.getPosts.map((post) => (
-                    <li key={post.id} style={{ marginBottom: '20px' }}>
+                    <div key={post.id} style={{ border: '1px solid #ddd', margin: '10px', padding: '10px' }}>
                         <h3>{post.title}</h3>
                         <p>{post.content}</p>
-                        <p>
-                            <strong>Autor:</strong> {post.author.username}
-                        </p>
-                        <Button
-                            label="Editar"
-                            icon="pi pi-pencil"
-                            className="p-button-rounded p-button-warning"
-                            onClick={() => openEditDialog(post)}
-                        />
-                        <Button
-                            label="Eliminar"
-                            icon="pi pi-trash"
-                            className="p-button-rounded p-button-danger"
-                            onClick={() => handleDelete(post.id)}
-                            style={{ marginLeft: '10px' }}
-                        />
-                    </li>
+                        <p>Autor: {post.author.username}</p>
+                        <button onClick={() => handleDeletePost(post.id)}>Eliminar</button>
+                        {/* Botón de Actualizar puede ser agregado más adelante */}
+                    </div>
                 ))}
-            </ul>
-            <Dialog
-                header="Editar Publicación"
-                visible={isDialogVisible}
-                style={{ width: '50vw' }}
-                onHide={() => setDialogVisible(false)}
-            >
-                <div className="p-field">
-                    <label htmlFor="title">Título</label>
-                    <InputText
-                        id="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="p-inputtext"
-                    />
-                </div>
-                <div className="p-field">
-                    <label htmlFor="content">Contenido</label>
-                    <InputText
-                        id="content"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        className="p-inputtext"
-                    />
-                </div>
-                <Button
-                    label="Actualizar"
-                    icon="pi pi-check"
-                    className="p-button-rounded p-button-success"
-                    onClick={handleUpdate}
-                />
-            </Dialog>
+            </div>
         </div>
     );
 };
