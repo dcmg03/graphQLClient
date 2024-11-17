@@ -3,14 +3,14 @@ import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 
 export default function ProtectedRoute({ children }) {
-    const { authToken } = useAuth();
+    const { isAuthenticated, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!authToken) {
+        if (!isAuthenticated) {
             router.push('/login'); // Redirige a la página de login si no está autenticado
         }
-    }, [authToken, router]);
+    }, [isAuthenticated, loading, router]);
 
-    return authToken ? children : null;
+    return !loading &&isAuthenticated ? children : null;
 }

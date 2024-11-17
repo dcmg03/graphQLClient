@@ -1,82 +1,82 @@
 import React, { useState } from 'react';
-import { gql, useMutation } from '@apollo/client';
-import { InputText } from 'primereact/inputtext';
-import { Password } from 'primereact/password';
-import { Button } from 'primereact/button';
-import { Message } from 'primereact/message';
+import { useAuth } from '../context/AuthContext';
 import { Card } from 'primereact/card';
-import { useRouter } from 'next/router';
-import 'primeflex/primeflex.css';
-
-const LOGIN_MUTATION = gql`
-    mutation Login($email: String!, $password: String!) {
-        login(email: $email, password: $password) {
-            token
-            user {
-                id
-                username
-                email
-            }
-        }
-    }
-`;
+import { InputText } from 'primereact/inputtext';
+import { Button } from 'primereact/button';
+import 'primereact/resources/themes/saga-green/theme.css'; // Tema mejorado
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 
 export default function Login() {
+    const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loginError, setLoginError] = useState(null); // Para almacenar mensajes de error personalizados
-    const [login, { error }] = useMutation(LOGIN_MUTATION);
-    const router = useRouter();
+    const [error, setError] = useState('');
 
-    const handleLogin = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoginError(null); // Limpiar error previo
         try {
-            const { data } = await login({ variables: { email, password } });
-            localStorage.setItem('authToken', data.login.token); // Guardar el token
-            router.push('/home'); // Redirigir al home u otra página después de iniciar sesión
+            await login(email, password);
         } catch (err) {
-            if (err.message.includes("incorrectos")) {
-                setLoginError("Correo o contraseña incorrectos. Por favor, inténtelo de nuevo.");
-            } else if (err.message.includes("no existe")) {
-                setLoginError("Este usuario no está registrado. Por favor, regístrese.");
-            } else {
-                setLoginError("Hubo un error al iniciar sesión. Intente nuevamente más tarde.");
-            }
+            setError(err.message);
         }
     };
 
     return (
-        <div className="p-d-flex p-jc-center p-ai-center" style={{ minHeight: '80vh' }}>
-            <Card title="Iniciar Sesión" className="p-shadow-3" style={{ maxWidth: '400px', width: '100%' }}>
-                <form onSubmit={handleLogin} className="p-fluid">
+        <div
+            style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                backgroundImage: 'linear-gradient(to bottom right, #2e7d32, #81c784)',
+            }}
+        >
+            <Card
+                title="Iniciar Sesión"
+                subTitle="Bienvenido de nuevo"
+                className="p-shadow-6"
+                style={{
+                    width: '25rem',
+                    borderRadius: '12px',
+                    background: '#ffffff',
+                }}
+            >
+                <form onSubmit={handleSubmit} className="p-fluid">
                     <div className="p-field">
                         <label htmlFor="email">Correo Electrónico</label>
                         <InputText
                             id="email"
-                            type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            type="email"
+                            placeholder="Ingresa tu correo electrónico"
                             required
                         />
                     </div>
-                    <div className="p-field" style={{ marginTop: '16px' }}>
+                    <div className="p-field">
                         <label htmlFor="password">Contraseña</label>
-                        <Password
+                        <InputText
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            type="password"
+                            placeholder="Ingresa tu contraseña"
                             required
-                            feedback={false}
                         />
                     </div>
-                    <Button label="Iniciar Sesión" icon="pi pi-sign-in" type="submit" className="p-button-success p-mt-3" />
-                    {loginError && (
-                        <Message severity="error" text={loginError} className="p-mt-3" />
+                    {error && (
+                        <div className="p-field" style={{ color: 'red', marginBottom: '1rem' }}>
+                            {error}
+                        </div>
                     )}
-                    {error && !loginError && (
-                        <Message severity="error" text="Hubo un problema al iniciar sesión." className="p-mt-3" />
-                    )}
+                    <Button
+                        type="submit"
+                        label="Iniciar Sesión"
+                        icon="pi pi-sign-in"
+                        className="p-button-rounded p-button-success p-mt-3"
+                        style={{ width: '100%' }}
+                    />
                 </form>
             </Card>
         </div>
