@@ -1,6 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { useAuth } from '../context/AuthContext';
+import { Button } from 'primereact/button';
+import { Card } from 'primereact/card';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { Toast } from 'primereact/toast';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
 
 const GET_POSTS = gql`
     query GetPosts {
@@ -35,76 +40,90 @@ const DELETE_POST = gql`
 `;
 
 const PostList = () => {
-    const { isAuthenticated } = useAuth();
     const { loading, error, data, refetch } = useQuery(GET_POSTS);
-    const [addPost] = useMutation(ADD_POST, {
-        onCompleted: () => refetch(),
-    });
-    const [deletePost] = useMutation(DELETE_POST, {
-        onCompleted: () => refetch(),
-    });
-
-    const [newPost, setNewPost] = useState({ title: '', content: '' });
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            refetch();
-        }
-    }, [isAuthenticated, refetch]);
-
-    if (!isAuthenticated) {
-        return <p>Debes iniciar sesión para ver las publicaciones.</p>;
-    }
-
-    if (loading) return <p>Cargando publicaciones...</p>;
-    if (error) return <p>Error al cargar publicaciones: {error.message}</p>;
+    const [addPost] = useMutation(ADD_POST);
+    const [deletePost] = useMutation(DELETE_POST);
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const toast = useRef(null);
 
     const handleAddPost = async (e) => {
         e.preventDefault();
         try {
-            await addPost({ variables: newPost });
-            setNewPost({ title: '', content: '' });
-            alert('Publicación creada con éxito');
+            await addPost({ variables: { title, content } });
+            setTitle('');
+            setContent('');
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Publicación creada con éxito' });
+            refetch();
         } catch (err) {
-            console.error('Error al crear publicación:', err.message);
+            toast.current.show({ severity: 'error', summary: 'Error', detail: 'Error al crear publicación' });
+            console.error(err.message);
         }
     };
 
     const handleDeletePost = async (id) => {
         try {
             await deletePost({ variables: { id } });
-            alert('Publicación eliminada con éxito');
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Publicación eliminada con éxito' });
+            refetch();
         } catch (err) {
-            console.error('Error al eliminar publicación:', err.message);
+            toast.current.show({ severity: 'error', summary: 'Error', detail: 'Error al eliminar publicación' });
+            console.error(err.message);
         }
     };
 
+    if (loading) return <ProgressSpinner />;
+    if (error) return <p>Error al cargar publicaciones: {error.message}</p>;
+
     return (
-        <div>
-            <h2>Publicaciones</h2>
-            <form onSubmit={handleAddPost}>
-                <input
-                    type="text"
-                    placeholder="Título"
-                    value={newPost.title}
-                    onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                />
-                <textarea
-                    placeholder="Contenido"
-                    value={newPost.content}
-                    onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                />
-                <button type="submit">Crear Publicación</button>
-            </form>
-            <div>
+        <div className="p-grid p-justify-center">
+            <Toast ref={toast} />
+            <div className="p-col-12 p-md-6">
+                <Card title="Crear Nueva Publicación">
+                    <form onSubmit={handleAddPost} className="p-fluid">
+                        <div className="p-field">
+                            <label htmlFor="title">Título</label>
+                            <InputText
+                                id="title"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Escribe el título"
+                            />
+                        </div>
+                        <div className="p-field">
+                            <label htmlFor="content">Contenido</label>
+                            <InputTextarea
+                                id="content"
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                rows={5}
+                                placeholder="Escribe el contenido de la publicación"
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            label="Crear Publicación"
+                            icon="pi pi-check"
+                            className="p-button-success"
+                        />
+                    </form>
+                </Card>
+            </div>
+            <div className="p-col-12 p-md-8">
+                <h2>Publicaciones</h2>
                 {data.getPosts.map((post) => (
-                    <div key={post.id} style={{ border: '1px solid #ddd', margin: '10px', padding: '10px' }}>
-                        <h3>{post.title}</h3>
+                    <Card key={post.id} title={post.title} className="p-mb-3">
                         <p>{post.content}</p>
-                        <p>Autor: {post.author.username}</p>
-                        <button onClick={() => handleDeletePost(post.id)}>Eliminar</button>
-                        {/* Botón de Actualizar puede ser agregado más adelante */}
-                    </div>
+                        <p>
+                            <strong>Autor:</strong> {post.author.username}
+                        </p>
+                        <Button
+                            label="Eliminar"
+                            icon="pi pi-trash"
+                            className="p-button-danger"
+                            onClick={() => handleDeletePost(post.id)}
+                        />
+                    </Card>
                 ))}
             </div>
         </div>
