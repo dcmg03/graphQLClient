@@ -65,7 +65,7 @@ const DELETE_POST = gql`
 `;
 
 const PostList = () => {
-    const client = useApolloClient(); // Apollo Client para limpiar caché
+    const client = useApolloClient();
     const { loading: loadingAll, error: errorAll, data: allPosts, refetch: refetchAll } = useQuery(GET_POSTS);
     const { loading: loadingMine, error: errorMine, data: myPosts, refetch: refetchMine } = useQuery(GET_MY_POSTS);
     const [addPost] = useMutation(ADD_POST);
@@ -79,13 +79,12 @@ const PostList = () => {
     const [postContent, setPostContent] = useState('');
     const toast = useRef(null);
 
-    // Ejecutar automáticamente al iniciar sesión (o montar el componente)
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                await client.clearStore(); // Limpia la caché de Apollo Client
-                refetchAll(); // Refresca las publicaciones generales
-                refetchMine(); // Refresca las publicaciones del usuario actual
+                await client.clearStore();
+                refetchAll();
+                refetchMine();
                 toast.current.show({ severity: 'success', summary: 'Bienvenido', detail: 'Datos cargados correctamente' });
             } catch (error) {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los datos' });
@@ -93,7 +92,7 @@ const PostList = () => {
         };
 
         fetchUserData();
-    }, [client, refetchAll, refetchMine]); // Solo se ejecuta una vez al montar el componente
+    }, [client, refetchAll, refetchMine]);
 
     const handleAddPost = async () => {
         if (!postTitle || !postContent) {
@@ -201,31 +200,35 @@ const PostList = () => {
 
                 <Panel header="Mis Publicaciones" className="p-shadow-3">
                     <div className="p-grid">
-                        {myPosts.getMyPosts.map((post) => (
-                            <div key={post.id} className="p-col-12 p-md-4">
-                                <Card title={post.title} subTitle={`Autor: ${post.author.username}`} className="p-shadow-3">
-                                    <p>{post.content}</p>
-                                    <div className="p-d-flex p-jc-between">
-                                        <Button
-                                            label="Editar"
-                                            icon="pi pi-pencil"
-                                            className="p-button-info"
-                                            onClick={() => {
-                                                setEditPost(post);
-                                                setNewTitle(post.title);
-                                                setNewContent(post.content);
-                                            }}
-                                        />
-                                        <Button
-                                            label="Eliminar"
-                                            icon="pi pi-trash"
-                                            className="p-button-danger"
-                                            onClick={() => handleDelete(post.id)}
-                                        />
-                                    </div>
-                                </Card>
-                            </div>
-                        ))}
+                        {myPosts?.getMyPosts?.length > 0 ? (
+                            myPosts.getMyPosts.map((post) => (
+                                <div key={post.id} className="p-col-12 p-md-4">
+                                    <Card title={post.title} subTitle={`Autor: ${post.author.username}`} className="p-shadow-3">
+                                        <p>{post.content}</p>
+                                        <div className="p-d-flex p-jc-between">
+                                            <Button
+                                                label="Editar"
+                                                icon="pi pi-pencil"
+                                                className="p-button-info"
+                                                onClick={() => {
+                                                    setEditPost(post);
+                                                    setNewTitle(post.title);
+                                                    setNewContent(post.content);
+                                                }}
+                                            />
+                                            <Button
+                                                label="Eliminar"
+                                                icon="pi pi-trash"
+                                                className="p-button-danger"
+                                                onClick={() => handleDelete(post.id)}
+                                            />
+                                        </div>
+                                    </Card>
+                                </div>
+                            ))
+                        ) : (
+                            <p>No tienes publicaciones registradas.</p>
+                        )}
                     </div>
                 </Panel>
 
@@ -233,15 +236,19 @@ const PostList = () => {
 
                 <Panel header="Publicaciones de Otros Usuarios" className="p-shadow-3">
                     <div className="p-grid">
-                        {allPosts.getPosts
-                            .filter((post) => !myPosts.getMyPosts.some((myPost) => myPost.id === post.id))
-                            .map((post) => (
-                                <div key={post.id} className="p-col-12 p-md-4">
-                                    <Card title={post.title} subTitle={`Autor: ${post.author.username}`} className="p-shadow-3">
-                                        <p>{post.content}</p>
-                                    </Card>
-                                </div>
-                            ))}
+                        {allPosts?.getPosts?.length > 0 ? (
+                            allPosts.getPosts
+                                .filter((post) => !myPosts?.getMyPosts?.some((myPost) => myPost.id === post.id))
+                                .map((post) => (
+                                    <div key={post.id} className="p-col-12 p-md-4">
+                                        <Card title={post.title} subTitle={`Autor: ${post.author.username}`} className="p-shadow-3">
+                                            <p>{post.content}</p>
+                                        </Card>
+                                    </div>
+                                ))
+                        ) : (
+                            <p>No hay publicaciones disponibles.</p>
+                        )}
                     </div>
                 </Panel>
             </div>
