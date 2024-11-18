@@ -1,6 +1,8 @@
 import React from "react";
 import { gql, useQuery } from "@apollo/client";
 import { Button } from "primereact/button";
+import { useRouter } from "next/router";
+import { ProgressSpinner } from "primereact/progressspinner";
 
 // Consulta GraphQL para obtener los datos del usuario
 const ME_QUERY = gql`
@@ -14,9 +16,11 @@ const ME_QUERY = gql`
 `;
 
 const Profile = () => {
-    const { data, loading, error } = useQuery(ME_QUERY,{
-        fetchPolicy: "network-only",
+    const { data, loading, error, refetch } = useQuery(ME_QUERY, {
+        fetchPolicy: "network-only", // Siempre obtener datos actualizados
     });
+
+    const router = useRouter();
 
     if (loading) {
         return (
@@ -28,7 +32,7 @@ const Profile = () => {
                     height: "100vh",
                 }}
             >
-                <p>Cargando...</p>
+                <ProgressSpinner />
             </div>
         );
     }
@@ -43,12 +47,26 @@ const Profile = () => {
                     height: "100vh",
                 }}
             >
-                <p>Error al cargar los datos del usuario: {error.message}</p>
+                <div style={{ textAlign: "center" }}>
+                    <p>Error al cargar los datos del usuario: {error.message}</p>
+                    <Button
+                        label="Reintentar"
+                        icon="pi pi-refresh"
+                        className="p-button-rounded p-button-warning"
+                        onClick={() => refetch()}
+                    />
+                </div>
             </div>
         );
     }
 
     const { me } = data;
+
+    // Si no hay datos de usuario, redirigir a login
+    if (!me) {
+        router.push("/login");
+        return null;
+    }
 
     return (
         <div
@@ -82,6 +100,7 @@ const Profile = () => {
                     label="Editar Perfil"
                     icon="pi pi-pencil"
                     className="p-button-rounded p-button-info p-button-outlined"
+                    onClick={() => router.push("/edit-profile")}
                 />
             </div>
         </div>
