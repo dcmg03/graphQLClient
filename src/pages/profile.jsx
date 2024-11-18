@@ -96,12 +96,7 @@ const Profile = () => {
                 <p>
                     <strong>Correo Electrónico:</strong> {me.email}
                 </p>
-                <Button
-                    label="Editar Perfil"
-                    icon="pi pi-pencil"
-                    className="p-button-rounded p-button-info p-button-outlined"
-                    onClick={() => router.push("/edit-profile")}
-                />
+
             </div>
         </div>
     );
